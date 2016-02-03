@@ -1,0 +1,14 @@
+{
+  "name": "node-qpid-tools",
+  "version": "0.0.1",
+  "description": "qpid-tools implemented in node.js using node-qmf2",
+  "main": "lib/index.js",
+  "author": "Matt Broadstone <mbroadst@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "amqp10": "^2.2.2",
+    "bluebird": "^3.2.1",
+    "bluebird-retry": "^0.5.3",
+    "qmf2": "^0.1.0"
+  }
+}
