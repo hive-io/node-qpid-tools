@@ -119,6 +119,8 @@ function processRouteCommand(rm, command, args) {
     return rm.listRoutes(remote)
       .map(r => console.log(sprintf('%s %s:%d %s %s', local.name,
         r.link.host, r.link.port, r.bridge.dest, r.bridge.dynamic ? '<dynamic>' : r.bridge.key)));
+  } else if (command === 'flush') {
+    return rm.clearRoutes({ deleteEmptyLinks: args.e });
   }
 }
 
