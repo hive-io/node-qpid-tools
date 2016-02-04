@@ -1,0 +1,130 @@
+#!/usr/bin/env node
+
+'use strict';
+var yargs = require('yargs'),
+    routeManager = require('../lib/route-manager'),
+    sprintf = require('sprintf'),
+    u = require('../lib/utilities');
+
+var usage =
+  `Usage:
+  $0 [OPTIONS] dynamic add <dest-broker> <src-broker> <exchange> [tag] [exclude-list] [mechanism]
+  $0 [OPTIONS] dynamic del <dest-broker> <src-broker> <exchange>
+
+  $0 [OPTIONS] route add   <dest-broker> <src-broker> <exchange> <routing-key> [tag] [exclude-list] [mechanism]
+  $0 [OPTIONS] route del   <dest-broker> <src-broker> <exchange> <routing-key>
+  $0 [OPTIONS] queue add   <dest-broker> <src-broker> <exchange> <queue> [mechanism]
+  $0 [OPTIONS] queue del   <dest-broker> <src-broker> <exchange> <queue>
+  $0 [OPTIONS] route list  [<dest-broker>]
+  $0 [OPTIONS] route flush [<dest-broker>]
+  $0 [OPTIONS] route map   [<broker>]
+
+  $0 [OPTIONS] link add  <dest-broker> <src-broker> [mechanism]
+  $0 [OPTIONS] link del  <dest-broker> <src-broker>
+  $0 [OPTIONS] link list [<dest-broker>]
+  `;
+
+var args = yargs
+  .wrap(null)
+  .usage(usage)
+  .help('help').alias('help', 'h')
+  .options({
+    'timeout': { default: 100, describe: 'Maximum time to wait for broker connection (in seconds)' },
+    'v': { alias: 'verbose', type: 'boolean', default: false, describe: 'Verbose output' },
+    'q': { alias: 'quiet', type: 'boolean', default: false, describe: "Quiet output, don't print duplicate warnings" },
+    'd': { alias: 'durable', type: 'boolean', default: false, describe: 'Added configuration shall be durable' },
+    'e': { alias: 'del-empty-link', type: 'boolean', default: true, describe: 'Delete link after deleting last route on the link' },
+    's': { alias: 'src-local', type: 'boolean', default: false, describe: 'Make connection to source broker (push route)' },
+    'ack': { type: 'number', describe: 'Acknowledge transfers over the bridge in batches of N' },
+    'credit': { type: 'number', default: 0, describe: 'Maximum number of messages a sender can have outstanding (0=unlimited)' },
+    't': { alias: 'transport', type: 'string', default: 'tcp', describe: 'Transport to use for links, defaults to tcp' },
+
+    // parser.add_option("--client-sasl-mechanism", action="store", type="string", metavar="<mech>", help="SASL mechanism for authentication (e.g. EXTERNAL, ANONYMOUS, PLAIN, CRAM-MD5, DIGEST-MD5, GSSAPI). Used when the client connects to the destination broker (not for authentication between the source and destination brokers - that is specified using the [mechanisms] argument to 'add route'). SASL automatically picks the most secure available mechanism - use this option to override.")
+    // parser.add_option("--sasl-service-name", action="store", type="string", help="SASL service name to use")
+    // parser.add_option("--ssl-certificate", action="store", type="string", metavar="<cert>", help="Client SSL certificate (PEM Format)")
+    // parser.add_option("--ssl-key", action="store", type="string", metavar="<key>", help="Client SSL private key (PEM Format)")
+    // parser.add_option("--ha-admin", action="store_true", help="Allow connection to a HA backup broker.")
+  }).argv;
+
+// verify we have groups and commands to work with
+if (args._.length < 2) {
+  yargs.showHelp();
+  process.exit(-1);
+}
+
+var local, remote;
+if (args._.length === 2) {
+  local = u.parseBrokerAddress('localhost');
+} else {
+  if (args.srcLocal) {
+    local = u.parseBrokerAddress(args._[3]);
+    remote = u.parseBrokerAddress(args._[2]);
+  } else {
+    local = u.parseBrokerAddress(args._[2]);
+    if (args._.length > 3) remote = u.parseBrokerAddress(args._[3]);
+  }
+}
+
+var group = args._[0].toLowerCase(), command = args._[1].toLowerCase();
+
+function bail() { yargs.showHelp(); process.exit(-1); }
+function YN(value) { return value === 1 ? 'Y' : 'N'; }
+function processLinkCommand(rm, command, args) {
+  if (command === 'add') {
+    if (args._.length < 3 || args._.length > 5) bail();
+    return rm.addLink(remote).then(() => rm._getAndWaitForLink(remote));
+  } else if (command === 'del') {
+    if (args._.length !== 4) bail();
+    return rm.removeLink(remote);
+  } else if (command === 'list') {
+    return rm.listLinks().then(links => {
+      if (links.length === 0) {
+        console.log('No Links Found');
+        return;
+      }
+
+      console.log();
+      console.log("Host            Port    Transport Durable  State             Last Error");
+      console.log("=============================================================================");
+      links.map(link => {
+        var info =
+          sprintf('%-16s%-8d%-13s%s     %-18s%s', link.host, link.port, link.transport, YN(link.durable), link.state, link.lastError)
+        console.log(info);
+      });
+    });
+  }
+
+  bail();
+}
+
+function processDynamicCommand(rm, command, args) {
+  var options = { dynamic: true, durable: args.durable, deleteEmptyLink: args.e };
+
+  if (command === 'add') {
+    if (args._.length < 5 || args._.length > 8) bail();
+    options.tag = (args._.length > 5) ? args._[5] : '';
+    options.excludes = (args._.length > 6) ? args._[6] : '';
+    options.mechanisms = (args._.length > 7) ? args._[7] : '';
+    return rm.addRoute(remote, args._[4], options);
+  } else if (command === 'del') {
+    if (args._.length !== 5) bail();
+    return rm.removeRoute(remote, args._[4], options);
+  }
+
+  bail();
+}
+
+function processGroupCommand(rm, group, command, args) {
+  switch (group) {
+    case 'link': return processLinkCommand(rm, command, args);
+    case 'dynamic': return processDynamicCommand(rm, command, args);
+  }
+
+  return Promise.reject('unimplemented group: ' + group);
+}
+
+// main
+return routeManager(local)
+  .then(router => processGroupCommand(router, group, command, args))
+  .error(err => console.log(err))
+  .then(() => process.exit(0));
