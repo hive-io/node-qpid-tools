@@ -61,7 +61,7 @@ if (args._.length === 2) {
     remote = u.parseBrokerAddress(args._[2]);
   } else {
     local = u.parseBrokerAddress(args._[2]);
-    if (args._.length > 3) remote = u.parseBrokerAddress(args._[3]);
+    remote = (args._.length > 3) ? u.parseBrokerAddress(args._[3]) : local;
   }
 }
 
@@ -114,10 +114,19 @@ function processDynamicCommand(rm, command, args) {
   bail();
 }
 
+function processRouteCommand(rm, command, args) {
+  if (command === 'list') {
+    return rm.listRoutes(remote)
+      .map(r => console.log(sprintf('%s %s:%d %s %s', local.name,
+        r.link.host, r.link.port, r.bridge.dest, r.bridge.dynamic ? '<dynamic>' : r.bridge.key)));
+  }
+}
+
 function processGroupCommand(rm, group, command, args) {
   switch (group) {
     case 'link': return processLinkCommand(rm, command, args);
     case 'dynamic': return processDynamicCommand(rm, command, args);
+    case 'route': return processRouteCommand(rm, command, args);
   }
 
   return Promise.reject('unimplemented group: ' + group);
