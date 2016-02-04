@@ -5,10 +5,20 @@
   "main": "lib/index.js",
   "author": "Matt Broadstone <mbroadst@gmail.com>",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mbroadst/node-qpid-tools.git"
+  },
+  "bin": {
+    "qpid-route": "./bin/qpid-route"
+  },
   "dependencies": {
     "amqp10": "^2.2.2",
     "bluebird": "^3.2.1",
     "bluebird-retry": "^0.5.3",
-    "qmf2": "^0.1.0"
+    "debug": "^2.2.0",
+    "qmf2": "^0.1.0",
+    "sprintf": "^0.1.5",
+    "yargs": "^3.32.0"
   }
 }
