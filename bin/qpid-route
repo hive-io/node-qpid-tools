@@ -121,6 +121,22 @@ function processRouteCommand(rm, command, args) {
         r.link.host, r.link.port, r.bridge.dest, r.bridge.dynamic ? '<dynamic>' : r.bridge.key)));
   } else if (command === 'flush') {
     return rm.clearRoutes({ deleteEmptyLinks: args.e });
+  } else if (command === 'map') {
+
+  } else {
+    var options = { dynamic: false, durable: args.durable, deleteEmptyLink: args.e };
+
+    if (command === 'add') {
+      if (args._.length < 6 || args._.length > 9) bail();
+      options.tag = (args._.length > 6) ? args._[6] : '';
+      options.excludes = (args._.length > 7) ? args._[7] : '';
+      options.mechanisms = (args._.length > 8) ? args._[8] : '';
+      return rm.addRoute(remote, args._[4], options);
+    } else if (command === 'del') {
+      if (args._.length !== 6) bail();
+      options.subject = args._[5];
+      return rm.removeRoute(remote, args._[4], options);
+    }
   }
 }
 
