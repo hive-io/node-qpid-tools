@@ -99,8 +99,7 @@ function processLinkCommand(rm, command, args) {
 }
 
 function processDynamicCommand(rm, command, args) {
-  var options = { dynamic: true, durable: args.durable, deleteEmptyLink: args.e };
-
+  var options = { dynamic: true, durable: args.durable, deleteEmptyLinks: args.e };
   if (command === 'add') {
     if (args._.length < 5 || args._.length > 8) bail();
     options.tag = (args._.length > 5) ? args._[5] : '';
@@ -125,8 +124,7 @@ function processRouteCommand(rm, command, args) {
   } else if (command === 'map') {
 
   } else {
-    var options = { dynamic: false, durable: args.durable, deleteEmptyLink: args.e };
-
+    var options = { dynamic: false, durable: args.durable, deleteEmptyLinks: args.e };
     if (command === 'add') {
       if (args._.length < 6 || args._.length > 9) bail();
       options.tag = (args._.length > 6) ? args._[6] : '';
