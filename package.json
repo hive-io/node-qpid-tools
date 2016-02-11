@@ -1,6 +1,6 @@
 {
   "name": "qpid-tools",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "qpid-tools implemented in node.js using node-qmf2",
   "main": "lib/index.js",
   "author": "Matt Broadstone <mbroadst@gmail.com>",
