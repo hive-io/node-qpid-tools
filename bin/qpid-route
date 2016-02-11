@@ -72,7 +72,8 @@ function YN(value) { return value === 1 ? 'Y' : 'N'; }
 function processLinkCommand(rm, command, args) {
   if (command === 'add') {
     if (args._.length < 3 || args._.length > 5) bail();
-    return rm.addLink(remote).then(() => rm._getAndWaitForLink(remote));
+    return rm.addLink(remote, { transport: args.transport, durable: args.durable })
+      .then(() => rm._getAndWaitForLink(remote));
   } else if (command === 'del') {
     if (args._.length !== 4) bail();
     return rm.removeLink(remote);

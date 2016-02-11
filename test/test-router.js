@@ -1,6 +1,6 @@
 'use strict';
 var Promise = require('bluebird'),
-    routeManager = require('./route-manager'),
+    routeManager = require('..').RouteManager,
     url = require('url');
 
 function parseBrokerAddress(address) {
@@ -20,9 +20,9 @@ function parseBrokerAddress(address) {
   };
 }
 
-var local = parseBrokerAddress('system:manager@192.168.1.9:5672'),
-    remote = parseBrokerAddress('system:manager@demo.hive-io.com:5672'),
-    exchange = 'hive.metrics';
+var local = parseBrokerAddress('system:manager@localhost:5672'),
+    remote = parseBrokerAddress('system:manager@localhost:5672'),
+    exchange = 'amq.topic';
 
 return Promise.all([ routeManager(local), routeManager(remote) ]).bind({})
   .spread((localRouter, remoteRouter) => {
@@ -40,13 +40,9 @@ return Promise.all([ routeManager(local), routeManager(remote) ]).bind({})
       ]);
     }
   })
+  .then(() => this.localRouter.clearRoutes())
+  .then(() => Promise.all([
+    this.localRouter.addRoute(remote, exchange), this.remoteRouter.removeRoute(local, exchange)]))
   .catch((err) => console.log('error: ', err))
   .then(() => process.exit(0));
-
-// PLAYGROUND
-// return routeManager(remote)
-//   .then(router => router.removeRoute(local, 'hive.metrics'))
-//   // .then((router) => router.listRoutes(local))
-//   // .then((routes) => console.log(routes))
-//   .then(() => process.exit(0));
 

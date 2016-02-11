@@ -1,5 +1,5 @@
 {
-  "name": "node-qpid-tools",
+  "name": "qpid-tools",
   "version": "0.0.1",
   "description": "qpid-tools implemented in node.js using node-qmf2",
   "main": "lib/index.js",
